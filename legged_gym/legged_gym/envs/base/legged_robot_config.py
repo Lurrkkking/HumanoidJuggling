@@ -160,6 +160,7 @@ class LeggedRobotCfg(BaseConfig):
         soft_dof_vel_limit = 0.9
         soft_torque_limit = 0.9
         max_contact_force = 100.  # forces above this value are penalized
+        base_height_target = 0.25  # default for quadrupeds; override per-task
 
     class normalization:
         class obs_scales:

@@ -29,7 +29,7 @@ class G1StandCfg(LeggedRobotCfg):
             heading = [-0.01, 0.01]
 
     class init_state(LeggedRobotCfg.init_state):
-        pos = [0.0, 0.0, 0.78]  # x, y, z [m]
+        pos = [0.0, 0.0, 0.8]  # x, y, z [m]
 
         default_joint_angles = {
             # Legs (12)
@@ -160,16 +160,23 @@ class G1StandCfg(LeggedRobotCfg):
 
     class rewards(LeggedRobotCfg.rewards):
         class scales:
-            # Only regularization rewards for stand-still smoke test
+            # positive rewards
+            alive = 1.0
+            upright = 2.0
+            base_height = 1.0
+            feet_contact = 0.5
+            # penalties
+            base_lin_vel = -0.2
+            base_ang_vel = -0.1
             torques = -1e-5
             dof_vel = -5e-4
             dof_acc = -2.5e-7
             action_rate = -0.01
             dof_pos_limits = -1.0
-            ang_vel_xy = -0.05
-            lin_vel_z = -1.0  # penalize vertical velocity
+            termination = -2.0
 
         only_positive_rewards = False
+        base_height_target = 0.76  # root z when feet on ground
         tracking_sigma = 0.25
         soft_dof_pos_limit = 0.9
         soft_dof_vel_limit = 0.9

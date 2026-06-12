@@ -114,7 +114,8 @@ class LeggedRobot(BaseTask):
             dim=1
         )
         self.time_out_buf = self.episode_length_buf > self.max_episode_length
-        self.gravity_termination_buf = torch.norm(self.projected_gravity[:, :2], dim=1) > 0.8
+        # XXX: raised to 0.999 until root_z / default pose foot-ground gap is fixed
+        self.gravity_termination_buf = torch.norm(self.projected_gravity[:, :2], dim=1) > 0.999
         self.reset_buf |= self.time_out_buf
         self.reset_buf |= self.gravity_termination_buf
 
@@ -691,10 +692,12 @@ class LeggedRobot(BaseTask):
         return torch.square(self.base_lin_vel[:, 2])
 
     def _reward_tracking_lin_vel(self):
-        return torch.sum(torch.square(self.commands[:, :2] - self.base_lin_vel[:, :2]), dim=1)
+        lin_vel_error = torch.sum(torch.square(self.commands[:, :2] - self.base_lin_vel[:, :2]), dim=1)
+        return torch.exp(-lin_vel_error / self.cfg.rewards.tracking_sigma)
 
     def _reward_tracking_ang_vel(self):
-        return torch.square(self.commands[:, 2] - self.base_ang_vel[:, 2])
+        ang_vel_error = torch.square(self.commands[:, 2] - self.base_ang_vel[:, 2])
+        return torch.exp(-ang_vel_error / self.cfg.rewards.tracking_sigma)
 
     def _reward_feet_air_time(self):
         # Reward long steps
@@ -715,6 +718,25 @@ class LeggedRobot(BaseTask):
              self.cfg.rewards.max_contact_force).clip(min=0.),
             dim=1
         )
+
+    def _reward_alive(self):
+        return (~self.reset_buf).float()
+
+    def _reward_upright(self):
+        return 1.0 - torch.norm(self.projected_gravity[:, :2], dim=1)
+
+    def _reward_base_height(self):
+        return torch.clip(self.root_states[:, 2] - self.cfg.rewards.base_height_target, min=0.)
+
+    def _reward_feet_contact(self):
+        contact = self.contact_forces[:, self.feet_indices, 2] > 0.5
+        return contact.float().mean(dim=1)
+
+    def _reward_base_lin_vel(self):
+        return torch.sum(torch.square(self.base_lin_vel), dim=1)
+
+    def _reward_base_ang_vel(self):
+        return torch.sum(torch.square(self.base_ang_vel), dim=1)
 
     def _draw_debug_vis(self):
         self.gym.clear_lines(self.viewer)
