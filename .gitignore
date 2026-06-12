@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+.pytest_cache/
+
+# Logs and outputs
+logs/
+outputs/
+runs/
+wandb/
+tensorboard/
+
+# RL checkpoints / exported models
+*.pt
+*.pth
+*.onnx
+*.jit
+
+# Isaac / simulation cache
+*.usd
+*.usdc
+*.usda
+*.log
+.cache/
+
+# System / IDE
+.DS_Store
+.vscode/
+.idea/

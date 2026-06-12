@@ -1,0 +1,140 @@
+# G1 Goalkeeper MuJoCo sim2sim config
+# Only contains fields needed for MuJoCo sim2sim verification.
+# All values derived from G1 goalkeeper training config
+# (legged_gym/envs/g1/g1_29_config.py).
+
+# --- MuJoCo model ---
+# G1 29-DOF goalkeeper XML with ball, collision geoms, ground
+xml_path: "../models/g1.xml"
+policy_path: "../weights/g1_official.onnx"
+
+# --- Simulation ---
+simulation_dt: 0.005        # 200 Hz MuJoCo physics (matches IsaacGym training sim_dt)
+control_decimation: 4       # policy runs at 50 Hz -> policy_dt = 0.005 * 4 = 0.02s (matches IsaacGym training)
+simulation_duration: 3.0    # seconds (150 control steps at 50Hz)
+
+# --- Observation dimensions ---
+num_actions: 29
+num_dofs: 29
+num_ballobs: 3
+num_single_obs: 96          # 3+3+3+29+29+29
+frame_stack: 10
+num_obs: 960                # 10 * 96
+
+# --- Clipping ---
+clip_actions: 100.0
+clip_observations: 100.0
+
+# --- Joint names (order MUST match policy action order from g1_29_config.py default_joint_angles) ---
+joint_names: [
+  "left_hip_pitch_joint",
+  "left_hip_roll_joint",
+  "left_hip_yaw_joint",
+  "left_knee_joint",
+  "left_ankle_pitch_joint",
+  "left_ankle_roll_joint",
+  "right_hip_pitch_joint",
+  "right_hip_roll_joint",
+  "right_hip_yaw_joint",
+  "right_knee_joint",
+  "right_ankle_pitch_joint",
+  "right_ankle_roll_joint",
+  "waist_yaw_joint",
+  "waist_roll_joint",
+  "waist_pitch_joint",
+  "left_shoulder_pitch_joint",
+  "left_shoulder_roll_joint",
+  "left_shoulder_yaw_joint",
+  "left_elbow_joint",
+  "left_wrist_roll_joint",
+  "left_wrist_pitch_joint",
+  "left_wrist_yaw_joint",
+  "right_shoulder_pitch_joint",
+  "right_shoulder_roll_joint",
+  "right_shoulder_yaw_joint",
+  "right_elbow_joint",
+  "right_wrist_roll_joint",
+  "right_wrist_pitch_joint",
+  "right_wrist_yaw_joint",
+]
+
+# --- Default DOF positions (from G1 config init_state.default_joint_angles) ---
+default_dof_pos: [
+  -0.1, 0.2, 0.0,   0.45, -0.1, -0.2,    # left
+  -0.1, -0.2, 0.0,  0.45, -0.1,  0.2,    # right
+  0.0, 0.0, 0.0,                          # waist (yaw, roll, pitch)
+  0.0, 0.5, 0.0, 1.2, 0.0, 0.0, 0.0,     # left arm
+  0.0, -0.5, 0.0, 1.2, 0.0, 0.0, 0.0,     # right arm
+]
+
+# --- Initial root pose (G1: z=0.8 from init_state.pos) ---
+init_root_pos: [0.0, 0.0, 0.76]
+init_root_quat: [1.0, 0.0, 0.0, 0.0]  # wxyz
+
+# --- PD gains (from G1 config stiffness/damping, mapped per joint type) ---
+# Joint types: hip_*=150, knee=300, ankle=40, waist=150, shoulder=150, elbow=150, wrist=20
+# Damping:    hip_*=2,   knee=4,   ankle=2,  waist=2,    shoulder=2, elbow=2,   wrist=0.5
+kps: [
+  150.0, 150.0, 150.0, 300.0, 60.0, 60.0,    # left leg
+  150.0, 150.0, 150.0, 300.0, 60.0, 60.0,    # right leg
+  150.0, 150.0, 150.0,                        # waist (yaw, roll, pitch)
+  150.0, 150.0, 150.0, 150.0, 20.0, 20.0, 20.0,  # left arm
+  150.0, 150.0, 150.0, 150.0, 20.0, 20.0, 20.0,  # right arm
+]
+
+kds: [
+  2.0, 2.0, 2.0, 4.0, 2.0, 2.0,    # left leg
+  2.0, 2.0, 2.0, 4.0, 2.0, 2.0,    # right leg
+  2.0, 2.0, 2.0,                    # waist (yaw, roll, pitch)
+  2.0, 2.0, 2.0, 2.0, 0.5, 0.5, 0.5,   # left arm
+  2.0, 2.0, 2.0, 2.0, 0.5, 0.5, 0.5,   # right arm
+]
+
+# --- Torque limits (from MuJoCo XML actuatorfrcrange) ---
+# hips: 88, knee: 139, ankle: 50, waist_yaw: 88, waist_roll/pitch: 50
+# shoulders/elbows/wrist_roll: 25, wrist_pitch/yaw: 5
+tau_limit: [
+  88.0, 88.0, 88.0, 139.0, 50.0, 50.0,    # left leg
+  88.0, 88.0, 88.0, 139.0, 50.0, 50.0,    # right leg
+  88.0, 50.0, 50.0,                         # waist (yaw, roll, pitch)
+  25.0, 25.0, 25.0, 25.0, 25.0, 5.0, 5.0,   # left arm
+  25.0, 25.0, 25.0, 25.0, 25.0, 5.0, 5.0,   # right arm
+]
+
+# --- Per-joint action scale (from G1 config action_scale=0.25, uniform) ---
+action_scale_vec: [
+  0.25, 0.25, 0.25, 0.25, 0.25, 0.25,    # left leg
+  0.25, 0.25, 0.25, 0.25, 0.25, 0.25,    # right leg
+  0.25, 0.25, 0.25,                       # waist (yaw, roll, pitch)
+  0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, # left arm
+  0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, # right arm
+]
+
+# --- Observation scales (from G1 config normalization.obs_scales) ---
+obs_scale_ang_vel: 0.25
+obs_scale_dof_pos: 1.0
+obs_scale_dof_vel: 0.05
+# NOTE: ball_pos scale (0.3) is NOT applied to actor obs ball position.
+# The ball position in actor obs is raw base-frame relative.
+
+# --- Ball (from training: ball.urdf mass=0.1, radius=0.1) ---
+ball_radius: 0.1
+ball_mass: 0.1
+
+# Default shot (used when --shot-mode is not specified, i.e., mode=-1).
+# When --shot-mode 0-5 is used, ball state is generated matching training
+# assign_ball_states (init_ranges + command_ranges, t_flight [0.4, 1.0]).
+shot_init_pos: [4.0, 0.0, 0.8]
+shot_init_vel: [-6.14, 0.0, 3.43]
+
+# --- IMU body name (must match MuJoCo XML body name) ---
+imu_body_name: "pelvis"       # matches training upper_body_link
+torso_body_name: "torso_link"  # ball position reference in training
+
+# --- Safety ---
+max_abs_qacc: 200000.0
+solver_iterations: 100
+ls_iterations: 50
+
+# --- Video ---
+video_fps: 50
