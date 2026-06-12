@@ -31,6 +31,7 @@
 import sys
 from isaacgym import gymapi
 from isaacgym import gymutil
+import time
 import numpy as np
 import torch
 
@@ -61,6 +62,7 @@ class BaseTask():
         self.num_obs = cfg.env.num_observations
         self.num_privileged_obs = cfg.env.num_privileged_obs
         self.num_actions = cfg.env.num_actions
+        self.num_one_step_obs = cfg.env.num_one_step_observations
 
         # optimization flags for pytorch JIT
         torch._C._jit_set_profiling_mode(False)
@@ -68,6 +70,7 @@ class BaseTask():
 
         # allocate buffers
         self.obs_buf = torch.zeros(self.num_envs, self.num_obs, device=self.device, dtype=torch.float)
+
         self.rew_buf = torch.zeros(self.num_envs, device=self.device, dtype=torch.float)
         self.reset_buf = torch.ones(self.num_envs, device=self.device, dtype=torch.long)
         self.episode_length_buf = torch.zeros(self.num_envs, device=self.device, dtype=torch.long)
@@ -96,10 +99,15 @@ class BaseTask():
             self.gym.subscribe_viewer_keyboard_event(
                 self.viewer, gymapi.KEY_ESCAPE, "QUIT")
             self.gym.subscribe_viewer_keyboard_event(
+                self.viewer, gymapi.KEY_SPACE, "pause")
+            self.gym.subscribe_viewer_keyboard_event(
                 self.viewer, gymapi.KEY_V, "toggle_viewer_sync")
 
     def get_observations(self):
         return self.obs_buf
+
+    def get_visual_observations(self):
+        return self.visual_obs_buf
     
     def get_privileged_observations(self):
         return self.privileged_obs_buf
@@ -111,6 +119,7 @@ class BaseTask():
     def reset(self):
         """ Reset all robots"""
         self.reset_idx(torch.arange(self.num_envs, device=self.device))
+
         obs, privileged_obs, _, _, _ = self.step(torch.zeros(self.num_envs, self.num_actions, device=self.device, requires_grad=False))
         return obs, privileged_obs
 
@@ -130,9 +139,22 @@ class BaseTask():
                 elif evt.action == "toggle_viewer_sync" and evt.value > 0:
                     self.enable_viewer_sync = not self.enable_viewer_sync
 
+                if evt.action == "pause" and evt.value > 0:
+                    self.pause = True
+                    while self.pause:
+                        time.sleep(0.1)
+                        self.gym.draw_viewer(self.viewer, self.sim, True)
+                        for evt in self.gym.query_viewer_action_events(self.viewer):
+                            if evt.action == "pause" and evt.value > 0:
+                                self.pause = False
+                        if self.gym.query_viewer_has_closed(self.viewer):
+                            sys.exit()
+
+
             # fetch results
             if self.device != 'cpu':
                 self.gym.fetch_results(self.sim, True)
+
 
             # step graphics
             if self.enable_viewer_sync:
@@ -142,3 +164,4 @@ class BaseTask():
                     self.gym.sync_frame_time(self.sim)
             else:
                 self.gym.poll_viewer_events(self.viewer)
+                

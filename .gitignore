@@ -5,15 +5,15 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 
-# Logs and outputs
+# Logs / training outputs
 logs/
+legged_gym/logs/
 outputs/
 runs/
 wandb/
 tensorboard/
 
-# RL checkpoints / exported models
-*.pt
+# Exported artifacts / checkpoints outside resources
 *.pth
 *.onnx
 *.jit
